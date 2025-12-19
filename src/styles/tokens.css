@@ -1,0 +1,52 @@
+:root {
+  /* Corporate Identity */
+  --ci-dark: #464648;
+  --ci-yellow: #F3DC36;
+  --ci-blue: #5666A2;
+
+  --bg:#F5F7FA; --bg-dark:#0B0E13;
+  --surface: rgba(255,255,255,.55);
+  --surface-dark: rgba(255,255,255,.04); /* Reduced opacity for deeper glass */
+  --text:#0E1116; --text-dark:#E8EDF3;
+  --text-muted:#3A4450; --text-dark-muted:#B8C1CC;
+  --hairline: rgba(0,0,0,.06); --hairline-dark: rgba(255,255,255,.1); /* Softened hairline */
+  --accent:#00AFB9; --accent2:#2A84FF;
+  --warm:#FFC36A; --warm2:#FF8A3D;
+  --sand:#AA895F; --leaf:#69C679;
+  --radius:16px; --radius-lg:24px;
+  --shadow-1: 0 2px 8px rgba(0,0,0,.12);
+  --shadow-2: 0 8px 24px rgba(0,0,0,.20);
+  --shadow-3: 0 16px 40px rgba(0,0,0,.28);
+}
+/* Liquid Glass utility */
+.liquid-glass {
+  background-color: rgba(255, 255, 255, 0.02); /* More subtle background */
+  backdrop-filter: blur(16px); /* Softer blur */
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Softer border */
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.05), /* Softer inner highlight */
+    0 4px 16px 0 rgba(0, 0, 0, 0.2); /* Softer outer shadow */
+  transition: all 0.3s ease;
+}
+
+.liquid-glass-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(243, 220, 54, 0.5); /* Muted yellow border on hover */
+  box-shadow:
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.05),
+    0 8px 24px 0 rgba(0, 0, 0, 0.3), /* Slightly stronger shadow on hover */
+    0 0 0 1px rgba(243, 220, 54, 0.2); /* Subtle glow */
+}
+
+/* Fallback for older browsers */
+@supports not (backdrop-filter: blur(1px)) {
+  .liquid-glass {
+    background-color: rgba(70, 70, 72, 0.85); /* Fallback to semi-transparent CI dark */
+    border: 1px solid var(--ci-blue);
+  }
+}
+/* Ambient CTA glow helper */
+.glow-warm{ box-shadow: 0 6px 18px rgba(255,163,90,.35); }
+.glow-cyan{ box-shadow: 0 6px 18px rgba(0,175,185,.35); }
