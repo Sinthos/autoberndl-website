@@ -17,6 +17,22 @@ prompt() {
   fi
 }
 
+pick_editor() {
+  if [[ -n "${EDITOR:-}" ]] && command -v "${EDITOR}" >/dev/null 2>&1; then
+    echo "${EDITOR}"
+    return
+  fi
+
+  for candidate in nano vi vim; do
+    if command -v "${candidate}" >/dev/null 2>&1; then
+      echo "${candidate}"
+      return
+    fi
+  done
+
+  echo ""
+}
+
 echo "=== Auto Berndl Deploy Helper ==="
 
 echo "Bitte Repo-URL angeben (SSH oder HTTPS)."
@@ -62,20 +78,47 @@ fi
 
 cd "${APP_DIR}"
 
-if [[ ! -f ".env.local" ]]; then
+if [[ ! -f "package.json" ]]; then
+  echo "package.json nicht gefunden in ${APP_DIR}."
+  echo "Bitte pruefen, ob das Installationsverzeichnis korrekt ist."
+  exit 1
+fi
+
+ENV_FILE="${APP_DIR}/.env.local"
+
+if [[ ! -f "${ENV_FILE}" ]]; then
   if [[ -f ".env.example" ]]; then
     echo "Erstelle .env.local aus .env.example..."
-    cp .env.example .env.local
+    cp .env.example "${ENV_FILE}"
     echo "Bitte .env.local mit Ihren Secrets fuellen."
   else
-    echo "Warnung: .env.example fehlt. Bitte .env.local manuell anlegen."
+    echo "Warnung: .env.example fehlt. Leere .env.local wird erstellt."
+    touch "${ENV_FILE}"
   fi
 fi
 
+if [[ -f "${ENV_FILE}" ]]; then
+  read -r -p "ENV jetzt bearbeiten? [Y/n]: " EDIT_ENV
+  if [[ -z "${EDIT_ENV}" || "${EDIT_ENV}" =~ ^[Yy]$ ]]; then
+    EDITOR_CMD="$(pick_editor)"
+    if [[ -n "${EDITOR_CMD}" ]]; then
+      "${EDITOR_CMD}" "${ENV_FILE}"
+    else
+      echo "Kein Editor gefunden. Bitte ${ENV_FILE} manuell bearbeiten."
+    fi
+  fi
+fi
+
+read -r -p "Mit Build fortfahren? [Y/n]: " CONTINUE_BUILD
+if [[ "${CONTINUE_BUILD}" =~ ^[Nn]$ ]]; then
+  echo "Build uebersprungen."
+  exit 0
+fi
+
 if [[ -f "package-lock.json" ]]; then
-  npm ci
+  npm ci --no-audit --no-fund
 else
-  npm install
+  npm install --no-audit --no-fund
 fi
 
 npm run build
@@ -85,6 +128,8 @@ echo "Build abgeschlossen."
 read -r -p "Systemd-Service einrichten? (erfordert sudo) [y/N]: " SETUP_SERVICE
 if [[ "${SETUP_SERVICE}" =~ ^[Yy]$ ]]; then
   SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
+  NODE_BIN="$(command -v node)"
+  NEXT_BIN="${APP_DIR}/node_modules/next/dist/bin/next"
   sudo tee "${SERVICE_FILE}" >/dev/null <<SERVICE
 [Unit]
 Description=Auto Berndl Next.js App
@@ -96,7 +141,7 @@ WorkingDirectory=${APP_DIR}
 Environment=NODE_ENV=production
 Environment=PORT=3000
 EnvironmentFile=${APP_DIR}/.env.local
-ExecStart=${APP_DIR}/node_modules/.bin/next start -p 3000
+ExecStart=${NODE_BIN} ${NEXT_BIN} start -p 3000
 Restart=on-failure
 RestartSec=5
 

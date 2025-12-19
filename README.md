@@ -70,12 +70,14 @@ Im Script gibst du dann als Installationsverzeichnis `/opt/autoberndl` an.
 ### Was das Script macht
 - Repo klonen oder aktualisieren
 - `.env.local` aus `.env.example` anlegen (falls nicht vorhanden)
+- Optional: `.env.local` im Editor oeffnen (vor dem Build)
 - Dependencies installieren
 - `npm run build`
 - Optional: systemd Service erstellen und starten
 
 ## Umgebungsvariablen (.env.local)
 Die Datei `.env.local` liegt **nur** auf dem Server und wird nicht ins Repo committet.
+Das Deploy-Script pausiert vor dem Build, damit du die Werte setzen oder anpassen kannst.
 
 Beispiel (siehe `.env.example`):
 ```
@@ -110,7 +112,8 @@ bash scripts/lxc-deploy.sh
 cd /opt/autoberndl
 
 git pull --ff-only
-npm ci
+nano .env.local
+npm install --no-audit --no-fund
 npm run build
 sudo systemctl restart autoberndl
 ```
@@ -123,7 +126,7 @@ git log --oneline
 # Beispiel: auf Commit zurueckgehen
 git checkout <commit-sha>
 
-npm ci
+npm install --no-audit --no-fund
 npm run build
 sudo systemctl restart autoberndl
 ```
