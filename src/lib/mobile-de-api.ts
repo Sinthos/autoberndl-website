@@ -140,8 +140,9 @@ async function getVehicles(): Promise<Vehicle[]> {
       if (hasRegistration) {
         detailsParts.push(`EZ ${registrationMonth}/${registrationYear}`);
       }
-      if (Number.isFinite(data.mileage)) {
-        detailsParts.push(`${data.mileage.toLocaleString("de-DE")} km`);
+      const mileageValue = typeof data.mileage === "number" && Number.isFinite(data.mileage) ? data.mileage : null;
+      if (mileageValue !== null) {
+        detailsParts.push(`${mileageValue.toLocaleString("de-DE")} km`);
       }
       if (powerPS !== null) {
         detailsParts.push(`${powerPS} PS`);
