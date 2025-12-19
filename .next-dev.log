@@ -133,3 +133,4 @@ ImageError: "url" parameter is valid but upstream response is invalid
  ✓ Compiled / in 1056ms (643 modules)
  GET / 200 in 1224ms
  ✓ Compiled in 113ms (286 modules)
+ ✓ Compiled in 145ms (286 modules)

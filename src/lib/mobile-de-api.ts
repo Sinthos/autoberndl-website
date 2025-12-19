@@ -133,7 +133,8 @@ async function getVehicles(): Promise<Vehicle[]> {
       const modelName = decodeHtmlEntities(data.model);
       const modelDescription = decodeHtmlEntities(data.modelDescription || "");
       const type = modelDescription.replace(modelName, "").trim() || modelDescription;
-      const powerPS = Number.isFinite(data.power) ? Math.round(data.power * 1.35962) : null;
+      const powerValue = typeof data.power === "number" && Number.isFinite(data.power) ? data.power : null;
+      const powerPS = powerValue !== null ? Math.round(powerValue * 1.35962) : null;
 
       const detailsParts: string[] = [];
       if (hasRegistration) {
