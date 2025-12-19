@@ -31,7 +31,7 @@ export function Hero() {
       <div className="container mx-auto grid items-center gap-8 lg:grid-cols-[1fr,1.1fr] relative">
         <div className="relative">
           <Image
-            src="https://www.getac.com/content/dam/uploads/2023/03/autorepairworkshop_cover.png"
+            src="/heroimage.jpg"
             alt="Moderne Werkstatt von Auto Berndl"
             width={640}
             height={440}
