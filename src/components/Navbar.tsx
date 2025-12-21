@@ -11,7 +11,7 @@ const navLinks = [
   { href: "/#fahrzeuge", label: "Fahrzeuge" },
   { href: "/#ankauf", label: "Ankauf" },
   { href: "/#kontakt", label: "Kontakt" },
-];
+] as const;
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
