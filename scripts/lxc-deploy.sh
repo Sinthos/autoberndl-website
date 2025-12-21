@@ -4,17 +4,44 @@ set -euo pipefail
 APP_NAME="autoberndl"
 DEFAULT_DIR="/opt/${APP_NAME}"
 DEFAULT_BRANCH="main"
+AUTO_YES="${AUTO_YES:-0}"
 
 prompt() {
   local message="$1"
   local default_value="$2"
   local input
+  if [[ "${AUTO_YES}" =~ ^[Yy1]$ ]]; then
+    echo "${default_value}"
+    return
+  fi
   read -r -p "${message} [${default_value}]: " input
   if [[ -z "${input}" ]]; then
     echo "${default_value}"
   else
     echo "${input}"
   fi
+}
+
+confirm() {
+  local message="$1"
+  local default_value="${2:-Y}"
+  local input
+  if [[ "${AUTO_YES}" =~ ^[Yy1]$ ]]; then
+    [[ "${default_value}" =~ ^[Yy]$ ]]
+    return
+  fi
+  read -r -p "${message} [${default_value}]: " input
+  if [[ -z "${input}" ]]; then
+    input="${default_value}"
+  fi
+  [[ "${input}" =~ ^[Yy]$ ]]
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|y|Y) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 pick_editor() {
@@ -37,14 +64,24 @@ echo "=== Auto Berndl Deploy Helper ==="
 
 echo "Bitte Repo-URL angeben (SSH oder HTTPS)."
 echo "Beispiele: git@github.com:org/repo.git oder https://github.com/org/repo.git"
-read -r -p "Repo URL: " REPO_URL
+REPO_URL="${REPO_URL:-}"
+if [[ -z "${REPO_URL}" ]]; then
+  read -r -p "Repo URL: " REPO_URL
+fi
 if [[ -z "${REPO_URL}" ]]; then
   echo "Repo URL fehlt. Abbruch."
   exit 1
 fi
 
-BRANCH=$(prompt "Branch" "${DEFAULT_BRANCH}")
-APP_DIR=$(prompt "Installationsverzeichnis" "${DEFAULT_DIR}")
+BRANCH="${BRANCH:-}"
+if [[ -z "${BRANCH}" ]]; then
+  BRANCH=$(prompt "Branch" "${DEFAULT_BRANCH}")
+fi
+
+APP_DIR="${APP_DIR:-}"
+if [[ -z "${APP_DIR}" ]]; then
+  APP_DIR=$(prompt "Installationsverzeichnis" "${DEFAULT_DIR}")
+fi
 
 if ! command -v git >/dev/null 2>&1; then
   echo "git ist nicht installiert. Bitte zuerst installieren."
@@ -59,6 +96,11 @@ fi
 if ! command -v npm >/dev/null 2>&1; then
   echo "npm ist nicht installiert. Bitte npm installieren."
   exit 1
+fi
+
+NODE_MAJOR="$(node -v | sed 's/v//' | cut -d. -f1)"
+if [[ "${NODE_MAJOR}" -lt 20 ]]; then
+  echo "Warnung: Node.js ${NODE_MAJOR} ist alt. Empfohlen: 20+."
 fi
 
 if [[ -d "${APP_DIR}/.git" ]]; then
@@ -98,8 +140,14 @@ if [[ ! -f "${ENV_FILE}" ]]; then
 fi
 
 if [[ -f "${ENV_FILE}" ]]; then
-  read -r -p "ENV jetzt bearbeiten? [Y/n]: " EDIT_ENV
-  if [[ -z "${EDIT_ENV}" || "${EDIT_ENV}" =~ ^[Yy]$ ]]; then
+  if [[ -z "${EDIT_ENV:-}" ]]; then
+    if confirm "ENV jetzt bearbeiten?" "Y"; then
+      EDIT_ENV="1"
+    else
+      EDIT_ENV="0"
+    fi
+  fi
+  if is_truthy "${EDIT_ENV:-0}"; then
     EDITOR_CMD="$(pick_editor)"
     if [[ -n "${EDITOR_CMD}" ]]; then
       "${EDITOR_CMD}" "${ENV_FILE}"
@@ -109,24 +157,73 @@ if [[ -f "${ENV_FILE}" ]]; then
   fi
 fi
 
-read -r -p "Mit Build fortfahren? [Y/n]: " CONTINUE_BUILD
-if [[ "${CONTINUE_BUILD}" =~ ^[Nn]$ ]]; then
+if [[ -z "${CONTINUE_BUILD:-}" ]]; then
+  if confirm "Mit Build fortfahren?" "Y"; then
+    CONTINUE_BUILD="1"
+  else
+    CONTINUE_BUILD="0"
+  fi
+fi
+if ! is_truthy "${CONTINUE_BUILD:-1}"; then
   echo "Build uebersprungen."
   exit 0
 fi
 
-if [[ -f "package-lock.json" ]]; then
-  npm ci --no-audit --no-fund
-else
+if [[ -z "${CLEAN_INSTALL:-}" ]]; then
+  if confirm "Saubere Installation (node_modules/.next loeschen)?" "N"; then
+    CLEAN_INSTALL="1"
+  else
+    CLEAN_INSTALL="0"
+  fi
+fi
+if is_truthy "${CLEAN_INSTALL:-0}"; then
+  rm -rf node_modules .next
+fi
+
+if [[ -z "${UPDATE_DEPS:-}" ]]; then
+  if confirm "Dependencies auf aktuellste kompatible Versionen aktualisieren (npm update)?" "Y"; then
+    UPDATE_DEPS="1"
+  else
+    UPDATE_DEPS="0"
+  fi
+fi
+
+if is_truthy "${UPDATE_DEPS:-0}"; then
   npm install --no-audit --no-fund
+  npm update --no-audit --no-fund
+else
+  if [[ -f "package-lock.json" ]]; then
+    npm ci --no-audit --no-fund
+  else
+    npm install --no-audit --no-fund
+  fi
+fi
+
+if [[ -z "${AUDIT_DEPS:-}" ]]; then
+  if confirm "npm audit ausfuehren (nur Produktion)?" "Y"; then
+    AUDIT_DEPS="1"
+  else
+    AUDIT_DEPS="0"
+  fi
+fi
+if is_truthy "${AUDIT_DEPS:-0}"; then
+  if ! npm audit --omit=dev; then
+    echo "npm audit meldet Schwachstellen. Bitte npm audit fix pruefen."
+  fi
 fi
 
 npm run build
 
 echo "Build abgeschlossen."
 
-read -r -p "Systemd-Service einrichten? (erfordert sudo) [y/N]: " SETUP_SERVICE
-if [[ "${SETUP_SERVICE}" =~ ^[Yy]$ ]]; then
+if [[ -z "${SETUP_SERVICE:-}" ]]; then
+  if confirm "Systemd-Service einrichten? (erfordert sudo)" "N"; then
+    SETUP_SERVICE="1"
+  else
+    SETUP_SERVICE="0"
+  fi
+fi
+if is_truthy "${SETUP_SERVICE:-0}"; then
   SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
   NODE_BIN="$(command -v node)"
   NEXT_BIN="${APP_DIR}/node_modules/next/dist/bin/next"
@@ -154,6 +251,22 @@ SERVICE
   echo "Service gestartet: ${APP_NAME}.service"
 else
   echo "Sie koennen die App manuell starten mit: npm run start"
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+  if systemctl list-unit-files | grep -q "^${APP_NAME}.service"; then
+    if [[ -z "${RESTART_SERVICE:-}" ]]; then
+      if confirm "Service ${APP_NAME}.service jetzt neu starten?" "Y"; then
+        RESTART_SERVICE="1"
+      else
+        RESTART_SERVICE="0"
+      fi
+    fi
+    if is_truthy "${RESTART_SERVICE:-0}"; then
+      sudo systemctl restart "${APP_NAME}.service"
+      echo "Service neu gestartet: ${APP_NAME}.service"
+    fi
+  fi
 fi
 
 echo "Fertig."

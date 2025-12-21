@@ -11,7 +11,7 @@ Dieses README erklaert Schritt fuer Schritt, wie du die Website in einem LXC (Pr
 - LXC Container mit Debian/Ubuntu (empfohlen: Ubuntu 22.04 oder Debian 12)
 - SSH Zugriff auf den Container
 - Private GitHub Repo (SSH Deploy Key)
-- Node.js 18+ und npm
+- Node.js 20+ (LTS empfohlen) und npm
 - git
 
 ### Pakete installieren (Beispiel Debian/Ubuntu)
@@ -19,8 +19,8 @@ Dieses README erklaert Schritt fuer Schritt, wie du die Website in einem LXC (Pr
 sudo apt update
 sudo apt install -y git curl build-essential
 
-# Node.js 18 (Nodesource)
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Node.js 20 LTS (Nodesource)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
@@ -71,9 +71,13 @@ Im Script gibst du dann als Installationsverzeichnis `/opt/autoberndl` an.
 - Repo klonen oder aktualisieren
 - `.env.local` aus `.env.example` anlegen (falls nicht vorhanden)
 - Optional: `.env.local` im Editor oeffnen (vor dem Build)
+- Optional: saubere Installation (node_modules/.next loeschen)
+- Optional: Dependencies auf aktuellste kompatible Versionen aktualisieren
+- Optional: `npm audit` (Produktion) ausfuehren
 - Dependencies installieren
 - `npm run build`
 - Optional: systemd Service erstellen und starten
+- Optional: systemd Service neu starten
 
 ## Umgebungsvariablen (.env.local)
 Die Datei `.env.local` liegt **nur** auf dem Server und wird nicht ins Repo committet.
@@ -107,6 +111,31 @@ Ein Update ist jederzeit moeglich, ohne die Umgebung neu aufzusetzen.
 bash scripts/lxc-deploy.sh
 ```
 
+### Update auf dem LXC (bereits installiert)
+```bash
+cd /opt/autoberndl
+bash scripts/lxc-deploy.sh
+```
+Wenn der Service laeuft:
+```bash
+sudo systemctl restart autoberndl
+```
+
+### Automatisiert (non-interaktiv)
+```bash
+REPO_URL=git@github.com:org/repo.git \
+APP_DIR=/opt/autoberndl \
+BRANCH=main \
+AUTO_YES=1 \
+EDIT_ENV=0 \
+UPDATE_DEPS=1 \
+AUDIT_DEPS=1 \
+CLEAN_INSTALL=0 \
+SETUP_SERVICE=1 \
+RESTART_SERVICE=1 \
+bash scripts/lxc-deploy.sh
+```
+
 ### Manuell (falls noetig)
 ```bash
 cd /opt/autoberndl
@@ -114,6 +143,7 @@ cd /opt/autoberndl
 git pull --ff-only
 nano .env.local
 npm install --no-audit --no-fund
+npm update --no-audit --no-fund
 npm run build
 sudo systemctl restart autoberndl
 ```

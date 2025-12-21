@@ -20,11 +20,11 @@ export function VehicleCard({ v }: VehicleCardProps) {
       <CardContent className="p-6 flex-1 flex flex-col">
         <CardTitle className="text-2xl truncate" title={`${v.brand} ${v.model}`}>{v.brand} {v.model}</CardTitle>
         <p className="text-lg text-medium-gray">{v.type}</p>
-        <div className="mt-4 text-medium-gray text-lg">{v.details}</div>
+        <div className="mt-4 text-medium-gray text-lg break-words">{v.details}</div>
       </CardContent>
-      <CardFooter className="p-6 flex items-center justify-between bg-light-gray">
-        <div className="text-3xl font-bold text-dark-gray">{v.price}</div>
-        <Button asChild className="bg-ci-yellow text-primary-dark-gray font-bold text-lg px-8 py-3 rounded-lg hover:bg-ci-yellow/90">
+      <CardFooter className="p-6 flex flex-col items-start gap-4 bg-light-gray sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-2xl font-bold text-dark-gray sm:text-3xl">{v.price}</div>
+        <Button asChild className="w-full bg-ci-yellow text-primary-dark-gray font-bold text-lg px-8 py-3 rounded-lg hover:bg-ci-yellow/90 sm:w-auto">
           <a href={v.url} target="_blank" rel="noreferrer">Details ansehen</a>
         </Button>
       </CardFooter>
